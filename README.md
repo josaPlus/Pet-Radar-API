@@ -207,6 +207,6 @@ npm run start:dev
 
 ---
 
-# 👨Autor
+# Autor
 
 Josafat Aguirre
