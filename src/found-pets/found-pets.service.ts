@@ -10,13 +10,13 @@ import { EmailOptions } from 'src/core/models/email-options.model';
 
 @Injectable()
 export class FoundPetsService {
-    constructor(
+  constructor(
     @InjectRepository(FoundPet)
     private readonly foundPetRepository: Repository<FoundPet>,
     @InjectRepository(LostPet)
     private readonly lostPetRepository: Repository<LostPet>,
     private readonly emailService: EmailService,
-  ) {}
+  ) { }
 
   async create(dto: FoundPetCDto): Promise<boolean> {
     // 1. Guardar mascota encontrada
@@ -32,19 +32,23 @@ export class FoundPetsService {
     // 2. Buscar mascotas perdidas en radio de 500 metros
     const nearbyLostPets = await this.lostPetRepository
       .createQueryBuilder('lp')
+      .addSelect(
+        `ST_Distance(
+      lp.location::geography,
+      ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+    )`,
+        'distance'
+      )
       .where(
         `ST_DWithin(
-          lp.location::geography,
-          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
-          :radius
-        )`,
-        {
-          lng: dto.longitude,
-          lat: dto.latitude,
-          radius: 500,
-        },
+      lp.location::geography,
+      ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+      :radius
+    )`,
+        { lng: dto.longitude, lat: dto.latitude, radius: 500 },
       )
       .andWhere('lp.is_active = true')
+      .orderBy('distance', 'ASC')
       .getMany();
 
     // 3. Enviar email a cada dueño de mascota perdida cercana
@@ -53,6 +57,7 @@ export class FoundPetsService {
 
       const options: EmailOptions = {
         to: lostPet.owner_email,
+        cc: 'josafat061@gmail.com',
         subject: `Posible avistamiento de ${lostPet.name}`,
         htmlBody: template,
       };

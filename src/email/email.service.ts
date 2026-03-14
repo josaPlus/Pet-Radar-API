@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import nodemailer from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 import { envs } from 'src/config/envs';
 import { EmailOptions } from 'src/core/models/email-options.model';
 
@@ -18,6 +18,7 @@ export class EmailService {
         try {
             await this.transporteR.sendMail({
                 to: options.to,
+                cc: options.cc,
                 subject: options.subject,
                 html: options.htmlBody,
             })
