@@ -7,13 +7,15 @@ import { EmailModule } from './email/email.module';
 import { EmailService } from './email/email.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from './core/db/data-source';
+import { CacheModule } from './cache/cache.module';
 
 @Module({
   imports: [
     LostPetsModule, 
     FoundPetsModule, 
     EmailModule,
-    TypeOrmModule.forRoot(dataSourceOptions)],
+    TypeOrmModule.forRoot(dataSourceOptions),
+    CacheModule],
   controllers: [AppController],
   providers: [AppService],
 })

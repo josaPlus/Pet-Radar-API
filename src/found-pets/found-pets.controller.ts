@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { FoundPetsService } from './found-pets.service';
 import type { FoundPetCDto } from 'src/core/models/found-pet.model';
 
@@ -10,4 +10,9 @@ export class FoundPetsController {
   create(@Body() dto: FoundPetCDto): Promise<boolean> {
     return this.foundPetsService.create(dto);
   }
+
+  @Get()
+  async findAll() {
+    return await this.foundPetsService.findAll();
+  }  
 }
