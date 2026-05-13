@@ -26,14 +26,14 @@ export class FoundPetsService {
     try {
       console.log('[FoundPetsService] Ejecutando query de todas las mascotas encontradas...');
       const cachedFoundPets = await this.cacheService.get<FoundPet[]>(CACHE_KEY_ALL_FOUND_PETS);
-      
+
       if (cachedFoundPets && cachedFoundPets.length > 0) {
         return cachedFoundPets;
       }
 
       const foundPets = await this.foundPetRepository.find();
       console.log(`[FoundPetsService] Se encontraron ${foundPets.length} mascotas`);
-      
+
       await this.cacheService.set(CACHE_KEY_ALL_FOUND_PETS, foundPets);
       return foundPets;
     } catch (error) {
@@ -108,6 +108,43 @@ export class FoundPetsService {
       console.error('[FoundPetsService] Error al crear mascota encontrada:');
       console.error(error);
       return false;
+    }
+  }
+  
+  async findByRadius(
+    latitude: number,
+    longitude: number,
+    radiusInMeters: number = 500,
+  ): Promise<FoundPet[]> {
+    try {
+      console.log(`[FoundPetsService] Buscando mascotas en radio de ${radiusInMeters}m desde (${latitude}, ${longitude})`);
+
+      const foundPets = await this.foundPetRepository
+        .createQueryBuilder('fp')
+        .addSelect(
+          `ST_Distance(
+          fp.location::geography,
+          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+        )`,
+          'distance'
+        )
+        .where(
+          `ST_DWithin(
+          fp.location::geography,
+          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+          :radius
+        )`,
+          { lng: longitude, lat: latitude, radius: radiusInMeters },
+        )
+        .orderBy('distance', 'ASC')
+        .getMany();
+
+      console.log(`[FoundPetsService] Se encontraron ${foundPets.length} mascotas en el radio`);
+      return foundPets;
+    } catch (error) {
+      console.error('[FoundPetsService] Error al buscar mascotas por radio:');
+      console.error(error);
+      return [];
     }
   }
 }
