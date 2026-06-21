@@ -7,7 +7,9 @@ import { EmailOptions } from 'src/core/models/email-options.model';
 export class EmailService {
 
     private transporteR = nodemailer.createTransport({
-        service: envs.MAILER_SERVICE,
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // TLS en lugar de SSL
         auth: {
             user: envs.MAILER_EMAIL,
             pass: envs.MAILER_PASWORD,
