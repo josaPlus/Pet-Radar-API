@@ -44,32 +44,75 @@ export class FoundPetsService {
   }
 
   async create(dto: FoundPetCDto): Promise<boolean> {
-    try {
-      console.log('[FoundPetsService] Iniciando creación de mascota encontrada...');
+  try {
+    console.log('[FoundPetsService] Iniciando creación de mascota encontrada...');
 
-      const newFoundPet = this.foundPetRepository.create({
-        ...dto,
-        location: {
-          type: 'Point',
-          coordinates: [dto.longitude, dto.latitude],
-        },
-      });
+    // 1. Guardar mascota encontrada
+    const newFoundPet = this.foundPetRepository.create({
+      ...dto,
+      location: {
+        type: 'Point',
+        coordinates: [dto.longitude, dto.latitude],
+      },
+    });
 
-      console.log('[FoundPetsService] Objeto creado:', JSON.stringify(newFoundPet));
+    const savedFoundPet = await this.foundPetRepository.save(newFoundPet);
+    console.log(`[FoundPetsService] ✅ Mascota encontrada guardada con ID: ${savedFoundPet.id}`);
 
-      const savedFoundPet = await this.foundPetRepository.save(newFoundPet);
-      console.log(`[FoundPetsService] ✅ Mascota encontrada guardada con ID: ${savedFoundPet.id}`);
+    // 2. Buscar mascotas perdidas en radio de 500 metros
+    const nearbyLostPets = await this.lostPetRepository
+      .createQueryBuilder('lp')
+      .addSelect(
+        `ST_Distance(
+          lp.location::geography,
+          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+        )`,
+        'distance'
+      )
+      .where(
+        `ST_DWithin(
+          lp.location::geography,
+          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+          :radius
+        )`,
+        { lng: dto.longitude, lat: dto.latitude, radius: 500 },
+      )
+      .andWhere('lp.is_active = true')
+      .orderBy('distance', 'ASC')
+      .getMany();
 
-      await this.cacheService.delete(CACHE_KEY_ALL_FOUND_PETS);
-      return true;
+    console.log(`[FoundPetsService] Se encontraron ${nearbyLostPets.length} mascotas perdidas cercanas`);
 
-    } catch (error) {
-      console.error('[FoundPetsService] ❌ ERROR al crear mascota encontrada:');
-      console.error(error instanceof Error ? error.message : JSON.stringify(error));
-      console.error(error);
-      return false;
+    // 3. Enviar email a cada dueño de mascota perdida cercana
+    for (const lostPet of nearbyLostPets) {
+      try {
+        const template = generateFoundPetEmailTemplate(dto, lostPet);
+        const options: EmailOptions = {
+          to: lostPet.owner_email,
+          cc: 'josafat061@gmail.com',
+          subject: `Posible avistamiento de ${lostPet.name}`,
+          htmlBody: template,
+        };
+        await this.emailService.sendEmail(options);
+        console.log(`[FoundPetsService] 📧 Email enviado a ${lostPet.owner_email}`);
+      } catch (error) {
+        console.error(`[FoundPetsService] Error enviando email a ${lostPet.owner_email}:`);
+        console.error(error);
+      }
     }
+
+    // 4. Invalidar caché
+    await this.cacheService.delete(CACHE_KEY_ALL_FOUND_PETS);
+
+    return true;
+
+  } catch (error) {
+    console.error('[FoundPetsService] ❌ ERROR al crear mascota encontrada:');
+    console.error(error instanceof Error ? error.message : JSON.stringify(error));
+    console.error(error);
+    return false;
   }
+}
 
   async findByRadius(
     latitude: number,
