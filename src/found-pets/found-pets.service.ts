@@ -84,22 +84,22 @@ export class FoundPetsService {
     console.log(`[FoundPetsService] Se encontraron ${nearbyLostPets.length} mascotas perdidas cercanas`);
 
     // 3. Enviar email a cada dueño de mascota perdida cercana
-    for (const lostPet of nearbyLostPets) {
-      try {
-        const template = generateFoundPetEmailTemplate(dto, lostPet);
-        const options: EmailOptions = {
-          to: lostPet.owner_email,
-          cc: 'josafat061@gmail.com',
-          subject: `Posible avistamiento de ${lostPet.name}`,
-          htmlBody: template,
-        };
-        await this.emailService.sendEmail(options);
-        console.log(`[FoundPetsService] 📧 Email enviado a ${lostPet.owner_email}`);
-      } catch (error) {
-        console.error(`[FoundPetsService] Error enviando email a ${lostPet.owner_email}:`);
-        console.error(error);
-      }
-    }
+    // for (const lostPet of nearbyLostPets) {
+    //   try {
+    //     const template = generateFoundPetEmailTemplate(dto, lostPet);
+    //     const options: EmailOptions = {
+    //       to: lostPet.owner_email,
+    //       cc: 'josafat061@gmail.com',
+    //       subject: `Posible avistamiento de ${lostPet.name}`,
+    //       htmlBody: template,
+    //     };
+    //     await this.emailService.sendEmail(options);
+    //     console.log(`[FoundPetsService] 📧 Email enviado a ${lostPet.owner_email}`);
+    //   } catch (error) {
+    //     console.error(`[FoundPetsService] Error enviando email a ${lostPet.owner_email}:`);
+    //     console.error(error);
+    //   }
+    // }
 
     // 4. Invalidar caché
     await this.cacheService.delete(CACHE_KEY_ALL_FOUND_PETS);
