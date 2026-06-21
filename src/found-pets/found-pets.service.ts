@@ -44,49 +44,49 @@ export class FoundPetsService {
   }
 
   async create(dto: FoundPetCDto): Promise<boolean> {
-  try {
-    // 1. Guardar mascota encontrada
-    const newFoundPet = this.foundPetRepository.create({
-      ...dto,
-      location: {
-        type: 'Point',
-        coordinates: [dto.longitude, dto.latitude],
-      },
-    });
-    const savedFoundPet = await this.foundPetRepository.save(newFoundPet);
-    console.log(`[FoundPetsService] Mascota encontrada guardada con ID: ${savedFoundPet.id}`);
+    try {
+      // 1. Guardar mascota encontrada
+      const newFoundPet = this.foundPetRepository.create({
+        ...dto,
+        location: {
+          type: 'Point',
+          coordinates: [dto.longitude, dto.latitude],
+        },
+      });
+      const savedFoundPet = await this.foundPetRepository.save(newFoundPet);
+      console.log(`[FoundPetsService] Mascota encontrada guardada con ID: ${savedFoundPet.id}`);
 
-    // 2. Buscar mascotas perdidas (COMENTADO POR AHORA)
-    /*
-    const nearbyLostPets = await this.lostPetRepository
-      .createQueryBuilder('lp')
-      .addSelect(...)
-      .where(...)
-      .getMany();
-
-    if (nearbyLostPets.length > 0) {
-      for (const lostPet of nearbyLostPets) {
-        try {
-          const template = generateFoundPetEmailTemplate(dto, lostPet);
-          await this.emailService.sendEmail(options);
-        } catch (error) {
-          console.error(`Error enviando email...`);
+      // 2. Buscar mascotas perdidas (COMENTADO POR AHORA)
+      /*
+      const nearbyLostPets = await this.lostPetRepository
+        .createQueryBuilder('lp')
+        .addSelect(...)
+        .where(...)
+        .getMany();
+  
+      if (nearbyLostPets.length > 0) {
+        for (const lostPet of nearbyLostPets) {
+          try {
+            const template = generateFoundPetEmailTemplate(dto, lostPet);
+            await this.emailService.sendEmail(options);
+          } catch (error) {
+            console.error(`Error enviando email...`);
+          }
         }
       }
+      */
+
+      // 3. Invalidar caché
+      await this.cacheService.delete(CACHE_KEY_ALL_FOUND_PETS);
+
+      return true;
+    } catch (error) {
+      console.error('[FoundPetsService] Error al crear mascota encontrada:');
+      console.error(error);
+      return false;
     }
-    */
-
-    // 3. Invalidar caché
-    await this.cacheService.delete(CACHE_KEY_ALL_FOUND_PETS);
-
-    return true;
-  } catch (error) {
-    console.error('[FoundPetsService] Error al crear mascota encontrada:');
-    console.error(error);
-    return false;
   }
-}
-  
+
   async findByRadius(
     latitude: number,
     longitude: number,
