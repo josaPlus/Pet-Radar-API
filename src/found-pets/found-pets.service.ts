@@ -45,7 +45,8 @@ export class FoundPetsService {
 
   async create(dto: FoundPetCDto): Promise<boolean> {
     try {
-      // 1. Guardar mascota encontrada
+      console.log('[FoundPetsService] Iniciando creación de mascota encontrada...');
+
       const newFoundPet = this.foundPetRepository.create({
         ...dto,
         location: {
@@ -53,35 +54,18 @@ export class FoundPetsService {
           coordinates: [dto.longitude, dto.latitude],
         },
       });
+
+      console.log('[FoundPetsService] Objeto creado:', JSON.stringify(newFoundPet));
+
       const savedFoundPet = await this.foundPetRepository.save(newFoundPet);
-      console.log(`[FoundPetsService] Mascota encontrada guardada con ID: ${savedFoundPet.id}`);
+      console.log(`[FoundPetsService] ✅ Mascota encontrada guardada con ID: ${savedFoundPet.id}`);
 
-      // 2. Buscar mascotas perdidas (COMENTADO POR AHORA)
-      /*
-      const nearbyLostPets = await this.lostPetRepository
-        .createQueryBuilder('lp')
-        .addSelect(...)
-        .where(...)
-        .getMany();
-  
-      if (nearbyLostPets.length > 0) {
-        for (const lostPet of nearbyLostPets) {
-          try {
-            const template = generateFoundPetEmailTemplate(dto, lostPet);
-            await this.emailService.sendEmail(options);
-          } catch (error) {
-            console.error(`Error enviando email...`);
-          }
-        }
-      }
-      */
-
-      // 3. Invalidar caché
       await this.cacheService.delete(CACHE_KEY_ALL_FOUND_PETS);
-
       return true;
+
     } catch (error) {
-      console.error('[FoundPetsService] Error al crear mascota encontrada:');
+      console.error('[FoundPetsService] ❌ ERROR al crear mascota encontrada:');
+      console.error(error instanceof Error ? error.message : JSON.stringify(error));
       console.error(error);
       return false;
     }
